@@ -18,6 +18,7 @@ intents.members = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 ######FUNCTIONS######
+#Get soup
 def get_soup(user):
   link = f"https://bigmom.42barcelona.com/?login={user}"
   soup = BeautifulSoup(requests.get(link).text, 'lxml')
@@ -27,6 +28,18 @@ def get_soup(user):
     "final": soup.find_all("h3")[3].text
   }
   return data
+
+#Get login - ONLY TO BE USED WHEN user != None
+def get_login(ctx, user):
+  login = ""
+  if user.startswith("<@") and user.endswith(">"):
+    user = user.replace("<@", "")
+    user = user.replace(">", "")
+    user : discord.Member = ctx.guild.get_member(int(user))
+    login = user.display_name
+  else:
+    login = user
+  return login
 
 #######EVENTS########
 @bot.event
@@ -43,7 +56,7 @@ async def on_message(message):
 #Bigmom - enseña la informacion relevante de bigmom del usuario
 @bot.command(aliases=["bm"], brief="Enseña la informacion relevante de bigmom del usuario")
 async def bigmom(message, target_user = None):
-  user = message.author.display_name if target_user is None else target_user
+  user = message.author.display_name if target_user is None else get_login(message, target_user)
   data = ic.get(f"https://api.intra.42.fr/v2/users?filter[login]={user}").json()
   
   try:
@@ -64,11 +77,12 @@ async def bigmom(message, target_user = None):
 #Info - Enseña información sobre el usuario especificado
 @bot.command(brief="Enseña información sobre el usuario especificado")
 async def info(message, user = None):
-  user = message.author.display_name if user is None else user
+  user = message.author.display_name if user is None else get_login(message, user)
   try:
     info = ic.get(f"https://api.intra.42.fr/v2/users?filter[login]={user}")
   except Exception:
     await message.send("User no encontrado. Has escrito bien el nombre?")
+    return
 
   if info.status_code == 200:
     try:
@@ -98,7 +112,7 @@ async def days(message, user = None):
     await message.send("Aprende a contar anda, que tienes la info en !bigmom")
     return
 
-  user = message.author.display_name if user is None else user
+  user = message.author.display_name if user is None else get_login(message, user)
   data = ic.get(f"https://api.intra.42.fr/v2/users?filter[login]={user}").json()
 
   try:
@@ -137,7 +151,7 @@ async def ask_staff(ctx):
 #pfp - Enseña la foto de la intra del usuario especificado
 @bot.command(brief="Enseña la foto de la intra del usuario especificado")
 async def pfp(message, user = None):
-  user = message.author.display_name if user is None else user
+  user = message.author.display_name if user is None else get_login(message, user)
   data = ic.get(f"https://api.intra.42.fr/v2/users?filter[login]={user}").json()
   await message.send(data[0]["image"]["link"])
 
