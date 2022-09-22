@@ -24,5 +24,5 @@ El bot de discord de 42 barcelona!
 ## Agradecimientos
 - A 42 barcelona por darnos esta oportunidad
 - A hive helsinki por hacer la libreria de python
-- A blvilarn, marijime y mferri-m por colaborar en la creacion del bot
+- A ltranca-, blvilarn, marijime y mferri-m por colaborar en la creacion del bot
 - A todos vosotros por ser tan geniales <3
