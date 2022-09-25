@@ -11,6 +11,7 @@ from intra import ic
 from bs4 import BeautifulSoup
 import requests
 from datetime import date
+import time
 
 ###Discord config####
 intents = discord.Intents.all()
@@ -154,6 +155,45 @@ async def pfp(message, user = None):
   user = message.author.display_name if user is None else get_login(message, user)
   data = ic.get(f"https://api.intra.42.fr/v2/users?filter[login]={user}").json()
   await message.send(data[0]["image"]["link"])
+
+#log - Te dice cuanto tiempo ha durado tu ultima estancia en 42
+@bot.command(brief="Enseña la foto de la intra del usuario especificado")
+async def log(message, user = None):
+  user = message.author.display_name if user is None else get_login(message, user)
+  data = ic.get(f"https://api.intra.42.fr/v2/users/{user}/locations").json()
+  beg = []
+  end = []
+  d = 0
+  for i in data:
+    a = time.strptime(i["begin_at"][ : -5], "%Y-%m-%dT%H:%M:%S")
+    b = time.strptime(i["end_at"][ : -5], "%Y-%m-%dT%H:%M:%S")
+    if a.tm_mday > d:
+      d = a.tm_mday
+    if a.tm_mday < d:
+      break
+    beg.append(a)
+    end.append(b)
+  n = -1
+  hh = []
+  nn = []
+  for i in beg:
+    n += 1
+    h = end[n].tm_hour - i.tm_hour
+    m = end[n].tm_min - i.tm_min
+    if m < 0:
+      h -= 1
+      m = 60 + m
+    hh.append(h)
+    nn.append(m)
+  h = sum(hh)
+  m = sum(nn)
+  if m > 60:
+    h += 1
+    m = m - 60
+  msg = discord.Embed(title="Ultima sesion", description=f"La ultima sesión ha sido de {h}h y {m}m", color=0x2ecc71)
+  msg.set_author(name = user, icon_url=data[0]["user"]["image"]["link"], url=f"https://profile.intra.42.fr/users/{user}")
+  await message.channel.send(embed=msg)
+    
 
 #####TOKEN & RUN#####
 token = os.environ['token']
