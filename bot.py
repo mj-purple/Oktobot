@@ -11,12 +11,14 @@ from intra import ic
 from bs4 import BeautifulSoup
 import requests
 from datetime import date
-import time
+import threading
+from collections import Counter
 
 ###Discord config####
 intents = discord.Intents.all()
 intents.members = True  
 bot = commands.Bot(command_prefix='!', intents=intents)
+fav = ""
 
 ######FUNCTIONS######
 #Get soup
@@ -41,6 +43,15 @@ def get_login(ctx, user):
   else:
     login = user
   return login
+
+def favorite_place(user):
+    global fav
+    data = ic.get(f"https://api.intra.42.fr/v2/users/{user}/locations").json()
+    fav = []
+    for i in data:
+        fav.append(i["host"])
+    fav = Counter(fav)
+    fav = fav.most_common(1)
 
 #######EVENTS########
 @bot.event
@@ -76,7 +87,6 @@ async def bigmom(message, target_user = None):
   await message.channel.send(embed=msg)
 
 #Info - Enseña información sobre el usuario especificado
-@bot.command(brief="Enseña información sobre el usuario especificado")
 async def info(message, user = None):
   user = message.author.display_name if user is None else get_login(message, user)
   try:
@@ -87,6 +97,8 @@ async def info(message, user = None):
 
   if info.status_code == 200:
     try:
+        x1 = threading.Thread(target=favorite_place, args=[user])
+        x1.start()
         data = info.json()
         aaa = data[0]["correction_point"]
         mon = data[0]["wallet"]
@@ -100,8 +112,8 @@ async def info(message, user = None):
             loc = "Fuera del campus"
     except IndexError:
         await message.send("User no encontrado o no tiene perfil. Has escrito bien el nombre?")
-
-    msg = discord.Embed(title="Info", description=f"Puntos: {aaa}\nMonedas: {mon}₳\nEsta en: {loc}\nCoalicion: {coal}", color=int(col[1: ].lower(), 16))
+    x1.join()
+    msg = discord.Embed(title="Info", description=f"Puntos: {aaa}\nMonedas: {mon}₳\nEsta en: {loc}\nCoalicion: {coal}\nLugar favorito: {fav[0][0]}", color=int(col[1: ].lower(), 16))
     msg.set_author(name = user, icon_url=data[0]["image"]["link"], url=f"https://profile.intra.42.fr/users/{user}")
     
     await message.channel.send(embed=msg)
@@ -202,6 +214,23 @@ async def say(ctx, *, message):
       await ctx.message.delete()
     finally:
       await ctx.send(f"{message}")
+#search - Te busca los logins a partir del nombre del alumno (solo de 42 barcelona)    
+@bot.command()
+async def search(message, user = None):
+  mm = ""
+  user = message.author.display_name if user is None else get_login(message, user)
+  try:
+    info = ic.get(f"https://api.intra.42.fr/v2/campus/46/users?filter[first_name]={user}")
+  except Exception:
+    await message.send("User no encontrado. Has escrito bien el nombre?")
+    return
+  if info.status_code == 200:
+        data = info.json()
+  for i in data:
+    i = i["login"]
+    mm = mm + f"\n{i}"
+  msg = discord.Embed(title=f"Logins con {user}", description=mm)
+  await message.channel.send(embed=msg)
 
 #####TOKEN & RUN#####
 token = os.environ['token']
