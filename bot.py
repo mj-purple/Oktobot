@@ -196,10 +196,12 @@ async def log(message, user = None):
 
 #say - Oktobot manda el mensaje que le pidas
 @bot.command(brief="Oktobot manda el mensaje que le pidas")
-@commands.has_rokle("/Oktobot Devs/")
-async def say(ctx, **message):
-    await ctx.message.delete()
-    await ctx.send(message)
+@commands.has_role("/Oktobot Devs/")
+async def say(ctx, *, message):
+    try:
+      await ctx.message.delete()
+    finally:
+      await ctx.send(f"{message}")
 
 #####TOKEN & RUN#####
 token = os.environ['token']
