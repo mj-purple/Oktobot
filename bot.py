@@ -193,7 +193,12 @@ async def log(message, user = None):
   msg = discord.Embed(title="Ultima sesion", description=f"La ultima sesión ha sido de {h}h y {m}m", color=0x2ecc71)
   msg.set_author(name = user, icon_url=data[0]["user"]["image"]["link"], url=f"https://profile.intra.42.fr/users/{user}")
   await message.channel.send(embed=msg)
-    
+
+#say - Oktobot elimina tu mensaje y manda el mismo
+@bot.command(brief="Oktobot elimina tu mensaje y manda el mismo")
+async def say(ctx, **message):
+    await ctx.message.delete()
+    await ctx.send(message)
 
 #####TOKEN & RUN#####
 token = os.environ['token']
