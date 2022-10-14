@@ -194,8 +194,9 @@ async def log(message, user = None):
   msg.set_author(name = user, icon_url=data[0]["user"]["image"]["link"], url=f"https://profile.intra.42.fr/users/{user}")
   await message.channel.send(embed=msg)
 
-#say - Oktobot elimina tu mensaje y manda el mismo
-@bot.command(brief="Oktobot elimina tu mensaje y manda el mismo")
+#say - Oktobot manda el mensaje que le pidas
+@bot.command(brief="Oktobot manda el mensaje que le pidas")
+@commands.has_rokle("/Oktobot Devs/")
 async def say(ctx, **message):
     await ctx.message.delete()
     await ctx.send(message)
