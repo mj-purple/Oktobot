@@ -169,7 +169,7 @@ async def pfp(message, user = None):
   await message.send(data[0]["image"]["link"])
 
 #log - Te dice cuanto tiempo ha durado tu ultima estancia en 42
-@bot.command(brief="Enseña la foto de la intra del usuario especificado")
+@bot.command(brief="Te dice cuanto tiempo ha durado tu ultima estancia en 42")
 async def log(message, user = None):
   user = message.author.display_name if user is None else get_login(message, user)
   data = ic.get(f"https://api.intra.42.fr/v2/users/{user}/locations").json()
