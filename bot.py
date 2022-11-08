@@ -13,11 +13,15 @@ import requests
 from datetime import date
 import threading
 from collections import Counter
+from discord import app_commands
+import time
 
 ###Discord config####
 intents = discord.Intents.all()
 intents.members = True  
-bot = commands.Bot(command_prefix='!', intents=intents)
+intents.message_content = True
+bot = discord.Client(intents=intents)
+tree = app_commands.CommandTree(bot)
 fav = ""
 
 ######FUNCTIONS######
@@ -56,25 +60,21 @@ def favorite_place(user):
 #######EVENTS########
 @bot.event
 async def on_ready():
-    print("uff")
+    await tree.sync(guild=discord.Object(id=1019664758099673191))
+    print("Bot preparado para dar segfaults (imposible en python por la falta de estilo)")
     await bot.change_presence(activity=discord.Game(name="Dar segfaults"))
-
-@bot.event
-async def on_message(message):
-  await bot.process_commands(message)
 
 
 ######COMMANDS#######
 #Bigmom - enseña la informacion relevante de bigmom del usuario
-@bot.command(aliases=["bm"], brief="Enseña la informacion relevante de bigmom del usuario")
-async def bigmom(message, target_user = None):
-  user = message.author.display_name if target_user is None else get_login(message, target_user)
+@tree.command(name = "bigmom", description = "Muestra la informacion de bigmom del usuario", guild=discord.Object(id=1019664758099673191))
+async def bigmom(interaction: discord.Interaction, user: str):
   data = ic.get(f"https://api.intra.42.fr/v2/users?filter[login]={user}").json()
   
   try:
     bigmom_data = get_soup(user)
   except IndexError:
-    await message.send("User no encontrado. Has escrito bien el nombre?")
+    await interaction.response.send_message("User no encontrado. Has escrito bien el nombre?")
     return None
     
   msg = discord.Embed(title="Big Mom", color=0xe74c3c)
@@ -84,15 +84,15 @@ async def bigmom(message, target_user = None):
   msg.add_field(name="Final Milestone", value=bigmom_data["final"], inline=False)
   msg.set_author(name= user, icon_url=data[0]["image"]["link"], url=f"https://profile.intra.42.fr/users/{user}")
   
-  await message.channel.send(embed=msg)
+  await interaction.response.send_message(embed=msg)
 
 #Info - Enseña información sobre el usuario especificado
-async def info(message, user = None):
-  user = message.author.display_name if user is None else get_login(message, user)
+@tree.command(name = "info", description = "Muestra la informacion del usuario", guild=discord.Object(id=1019664758099673191))
+async def info(interaction: discord.Interaction, user: str):
   try:
     info = ic.get(f"https://api.intra.42.fr/v2/users?filter[login]={user}")
   except Exception:
-    await message.send("User no encontrado. Has escrito bien el nombre?")
+    await interaction.response.send_message("User no encontrado. Has escrito bien el nombre?")
     return
 
   if info.status_code == 200:
@@ -111,27 +111,27 @@ async def info(message, user = None):
         if loc == None:
             loc = "Fuera del campus"
     except IndexError:
-        await message.send("User no encontrado o no tiene perfil. Has escrito bien el nombre?")
+        await interaction.response.send_message("User no encontrado o no tiene perfil. Has escrito bien el nombre?")
     x1.join()
     msg = discord.Embed(title="Info", description=f"Puntos: {aaa}\nMonedas: {mon}₳\nEsta en: {loc}\nCoalicion: {coal}\nLugar favorito: {fav[0][0]}", color=int(col[1: ].lower(), 16))
     msg.set_author(name = user, icon_url=data[0]["image"]["link"], url=f"https://profile.intra.42.fr/users/{user}")
     
-    await message.channel.send(embed=msg)
+    await interaction.response.send_message(embed=msg)
+
 
 #Days - Enseña los dias restantes para el proximo checkpoint y la milestone actual del usuario especificado
-@bot.command(brief="Enseña los dias restantes para el proximo checkpoint y milestone")
-async def days(message, user = None):
+@tree.command(name = "days", description = "Muestra los dias que le faltan al usuario para completar el checkpoint y el milestone", guild=discord.Object(id=1019664758099673191))
+async def days(interaction: discord.Interaction, user: str):
   if random.randint(1, 100) <= 5:
-    await message.send("Aprende a contar anda, que tienes la info en !bigmom")
+    await interaction.response.send_message("Aprende a contar anda, que tienes la info en !bigmom")
     return
 
-  user = message.author.display_name if user is None else get_login(message, user)
   data = ic.get(f"https://api.intra.42.fr/v2/users?filter[login]={user}").json()
 
   try:
     bigmom_data = get_soup(user)
   except IndexError:
-    await message.send("User no encontrado. Has escrito bien el nombre?")
+    await interaction.response.send_message("User no encontrado. Has escrito bien el nombre?")
     return None
     
   info_f = bigmom_data["final"].split(" ")
@@ -149,29 +149,27 @@ async def days(message, user = None):
     msg = discord.Embed(title="Contador de dias", description=f"Proximo checkpoint: {checkpoint}\nFinal del milestone: {milestone}", color=0x2ecc71)
   msg.set_author(name = user, icon_url=data[0]["image"]["link"], url=f"https://profile.intra.42.fr/users/{user}")
     
-  await message.channel.send(embed=msg)
+  await interaction.response.send_message(embed=msg)
 
 #Ping - Pinguea al bot y devuelve los ms
-@bot.command(brief="Pinguea al bot y devuelve los ms")
-async def ping(ctx):
-  await ctx.send(f"Pong! ({int(bot.latency * 1000)}ms)")
+@tree.command(name = "ping", description = "Pinguea al bot y devuelve los ms", guild=discord.Object(id=1019664758099673191))
+async def ping(interaction: discord.Interaction):
+  await interaction.response.send_message(f"Pong! ({int(bot.latency * 1000)}ms)")
 
 #AskStaff - up2you
-@bot.command(brief="up2you")
-async def ask_staff(ctx):
-  await ctx.send("Up to you")
+@tree.command(name = "ask_staff", description = "La respuesta a todos tus problemas", guild=discord.Object(id=1019664758099673191))
+async def ask_staff(interaction: discord.Interaction):
+  await interaction.response.send_message("Up to you")
 
 #pfp - Enseña la foto de la intra del usuario especificado
-@bot.command(brief="Enseña la foto de la intra del usuario especificado")
-async def pfp(message, user = None):
-  user = message.author.display_name if user is None else get_login(message, user)
+@tree.command(name = "pfp", description = "Enseña la foto de la intra del usuario especificado", guild=discord.Object(id=1019664758099673191))
+async def pfp(interaction: discord.Interaction, user: str):
   data = ic.get(f"https://api.intra.42.fr/v2/users?filter[login]={user}").json()
-  await message.send(data[0]["image"]["link"])
+  await interaction.response.send_message(data[0]["image"]["link"])
 
 #log - Te dice cuanto tiempo ha durado tu ultima estancia en 42
-@bot.command(brief="Te dice cuanto tiempo ha durado tu ultima estancia en 42")
-async def log(message, user = None):
-  user = message.author.display_name if user is None else get_login(message, user)
+@tree.command(name = "log", description = "Te dice cuanto tiempo ha durado tu ultima estancia en 42", guild=discord.Object(id=1019664758099673191))
+async def log(interaction: discord.Interaction, user: str):
   data = ic.get(f"https://api.intra.42.fr/v2/users/{user}/locations").json()
   beg = []
   end = []
@@ -204,25 +202,21 @@ async def log(message, user = None):
     m = m - 60
   msg = discord.Embed(title="Ultima sesion", description=f"La ultima sesión ha sido de {h}h y {m}m", color=0x2ecc71)
   msg.set_author(name = user, icon_url=data[0]["user"]["image"]["link"], url=f"https://profile.intra.42.fr/users/{user}")
-  await message.channel.send(embed=msg)
+  await interaction.response.send_message(embed=msg)
 
 #say - Oktobot manda el mensaje que le pidas
-@bot.command(brief="Oktobot manda el mensaje que le pidas")
+@tree.command(name = "say", description = "Di algo con el bot :3", guild=discord.Object(id=1019664758099673191))
 @commands.has_role("/Oktobot Devs/")
-async def say(ctx, *, message):
-    try:
-      await ctx.message.delete()
-    finally:
-      await ctx.send(f"{message}")
+async def say(interaction: discord.Interaction, mensaje: str):
+      await interaction.response.send_message(f"{mensaje}")
 #search - Te busca los logins a partir del nombre del alumno (solo de 42 barcelona)    
-@bot.command()
-async def search(message, user = None):
+@tree.command(name = "search", description = "Te busca los logins a partir del nombre del alumno (solo de 42 barcelona)", guild=discord.Object(id=1019664758099673191))
+async def search(interaction: discord.Interaction, nombre: str):
   mm = ""
-  user = message.author.display_name if user is None else get_login(message, user)
   try:
     info = ic.get(f"https://api.intra.42.fr/v2/campus/46/users?filter[first_name]={user}")
   except Exception:
-    await message.send("User no encontrado. Has escrito bien el nombre?")
+    await interaction.response.send_message("User no encontrado. Has escrito bien el nombre?")
     return
   if info.status_code == 200:
         data = info.json()
@@ -230,7 +224,8 @@ async def search(message, user = None):
     i = i["login"]
     mm = mm + f"\n{i}"
   msg = discord.Embed(title=f"Logins con {user}", description=mm)
-  await message.channel.send(embed=msg)
+  await interaction.response.send_message(embed=msg)
+
 
 #####TOKEN & RUN#####
 token = os.environ['token']
